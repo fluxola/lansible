@@ -1,0 +1,11 @@
+---
+- hosts: lan
+  become: yes
+  become_method: sudo
+  gather_facts: yes
+  tasks:
+  - name: Run apt update and apt upgrade
+    apt:
+      update_cache: yes
+      upgrade: dist
+  - include: roles/common/main.yml

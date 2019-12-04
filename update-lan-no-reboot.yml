@@ -1,0 +1,12 @@
+---
+- hosts: lan
+  remote_user: ansible
+  become: yes
+  become_method: sudo
+  connection: ssh
+  gather_facts: yes
+  tasks:
+  - name: Run apt update and apt upgrade
+    apt:
+      update_cache: yes
+      upgrade: dist
