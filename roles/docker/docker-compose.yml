@@ -1,0 +1,273 @@
+############
+############
+############
+###### Docker Compose Configuration for Home Deployment
+###### Christopher Goulet
+###### PUBLIC
+############
+############
+############
+
+version: '3'
+
+
+######
+###  Docker Volumes
+######
+volumes:
+  prometheus: {}
+  grafana_data: {}
+  dbdata:
+  gitlab-logs:
+  gitlab-data:
+  gitlab-config:
+  gitlab-certs:        
+  gitlab-runner1-config:
+  registry-certs:
+  registry-data:
+  traefik-log:
+
+
+######
+### Docker Networks
+######    
+networks:
+  net:
+  gitlab_net:
+
+
+######
+### Docker Services
+######  
+services:
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./files/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - net
+    ports:
+      - '9090'
+  # Visualization and graphing
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel  
+    depends_on:
+      - prometheus
+    networks:
+      - net
+    ports:
+      - "3000:3000"
+  # Exposes key server metrics of host to Prometheus
+  node-exporter:
+    image: prom/node-exporter
+    container_name: nodeexporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - net
+    ports:
+      - "9100"
+  # Exposes key container metrics to Prometheus
+  cadvisor:
+    image: google/cadvisor
+    container_name: cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro  
+    depends_on:
+      - prometheus
+    networks:
+      - net
+    ports:
+      - "8080"
+
+######
+### Quassel IRC
+######
+  quassel-core:
+    image: linuxserver/quassel-core
+    container_name: quassel-core
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - RUN_OPTS=--config-from-environment #optional
+    volumes:
+      - ./config:/config
+    ports:
+      - 4242:4242
+      - 113:10113 #optional
+    restart: unless-stopped
+######
+### Gitlab Suite
+######
+  gitlab: 
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    restart: unless-stopped
+    hostname: ${HOSTNAME}
+    volumes:
+      - gitlab-config:/etc/gitlab:rw
+      - gitlab-logs:/var/log/gitlab:rw
+      - gitlab-data:/var/opt/gitlab:rw
+      - gitlab-certs:/certs
+    depends_on:
+      - postgresql
+      - redis    
+    ports:
+      - "22:22"
+    networks:
+      - gitlab_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.gitlab.port=80"
+      - "traefik.gitlab.backend=gitlab"
+      - "traefik.gitlab.frontend.rule=Host:git.bemadev.com"   
+      - "traefik.gitlab.frontend.entryPoints=http,https"
+      - "traefik.docker.network=gitlab_net"
+    environment:
+      HOSTNAME: ${HOSTNAME}
+      REGISTRY_HOSTNAME: ${REGISTRY_HOSTNAME}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}          
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: gitlabhq_production
+      INITIAL_PASSWORD: ${INITIAL_PASSWORD}        
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url "https://$HOSTNAME"
+        # letsencrypt['enable'] = true
+        # letsencrypt['contact_emails'] = ['$LETSENCRYPT_EMAIL']
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        nginx['proxy_set_headers'] = {
+          "X-Forwarded-Proto" => "https",
+          "X-Forwarded-Ssl" => "on"
+        }
+        #Registry Config
+        registry['enable'] = false # This is confusing... 'false' because we are providing our own registry instead of the omnibus one...
+        gitlab_rails['registry_enabled'] = true # ...and this is 'true' because we have to tell gitlab a registry exists
+        gitlab_rails['registry_host'] = "$REGISTRY_HOSTNAME" 
+        gitlab_rails['registry_api_url'] = "https://$REGISTRY_HOSTNAME"
+        gitlab_rails['registry_issuer'] = "gitlab-issuer"                
+        #Postgres Config
+        postgresql['enable'] = false
+        gitlab_rails['db_username'] = '$POSTGRES_USER'
+        gitlab_rails['db_password'] = '$POSTGRES_PASSWORD'
+        gitlab_rails['db_host'] = "postgresql"
+        gitlab_rails['db_port'] = "5432"
+        gitlab_rails['db_database'] = "gitlabhq_production"
+        gitlab_rails['db_adapter'] = 'postgresql'
+        gitlab_rails['db_encoding'] = 'utf8'
+        # Redis Config
+        redis['enable'] = false
+        gitlab_rails['redis_host'] = 'redis'
+        gitlab_rails['redis_port'] = '6379'
+        gitlab_rails['gitlab_shell_ssh_port'] = 22
+        gitlab_rails['initial_root_password'] = "$INITIAL_PASSWORD"
+######
+### Container Registry
+######
+  registry:
+    restart: unless-stopped
+    image: registry:2.7
+    container_name: gitlab_registry
+    volumes:
+      - registry-data:/registry
+      - registry-certs:/certs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:reg.bemadev.com"
+      - "traefik.port=5000"
+      - "traefik.backend=gitlab_registry"
+      - "traefik.frontend.entryPoints=http,https"
+      - "traefik.docker.network=gitlab_net"     
+    networks:
+      - gitlab_net
+    environment:
+      REGISTRY_LOG_LEVEL: debug
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /registry
+      REGISTRY_AUTH_TOKEN_REALM: https://git.bemadev.com/jwt/auth 
+      REGISTRY_AUTH_TOKEN_SERVICE: container_registry
+      REGISTRY_AUTH_TOKEN_ISSUER: gitlab-issuer
+      REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE: /certs/gitlab-registry.crt
+      REGISTRY_STORAGE_DELETE_ENABLED: 'true'
+######
+### Gitlab Runner | Docker Pipelines on Tap
+######
+
+  gitlab-runner1:
+    restart: unless-stopped
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner1
+    hostname: gitlab-runner1
+    networks: 
+      - gitlab_net
+    volumes:
+      - gitlab-runner1-config:/etc/gitlab-runner:Z
+      - /var/run/docker.sock:/var/run/docker.sock
+  # Gitlab Database
+  postgresql:
+    restart: unless-stopped
+    container_name: gitlab_database
+    image: postgres:10.9
+    networks:
+      - gitlab_net
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=gitlabhq_production
+    volumes:
+      - dbdata:/var/lib/postgresql/data:rw
+  # Gitlab Redis 
+  redis:
+    container_name: gitlab_redis
+    restart: unless-stopped
+    image: redis:latest
+    networks:
+      - gitlab_net
+######
+### Traefik Proxy Engine
+######
+  traefik:
+    container_name: gitlab_traefik
+    restart: unless-stopped
+    image: traefik:v1.7
+    command:
+      --configFile=/var/traefik/traefik.toml
+    ports:
+      - "443:443"
+      - "80:80"
+      - "8090:8090"
+    networks:
+      - gitlab_net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./files/traefik/traefik.toml:/var/traefik/traefik.toml:ro
+      - traefik-log:/log    
+
