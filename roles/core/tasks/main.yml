@@ -1,0 +1,4 @@
+---
+- include: swap.yml
+- include: apt.yml
+- include: users.yml

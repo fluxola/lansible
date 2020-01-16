@@ -1,0 +1,64 @@
+---
+
+  - name: install ufw
+    apt: name={{ item }} state=present update_cache=yes
+    with_items:
+      - ufw
+  
+  - name: configure ufw defaults
+    ufw: direction={{ item.direction }} policy={{ item.policy }}
+    with_items:
+      - { direction: 'incoming', policy: 'deny' }
+      - { direction: 'outgoing', policy: 'allow' }
+
+  - name: configure public facing ufw ports
+    ufw: rule={{ item.rule }} port={{ item.port }} proto={{ item.proto }}
+    with_items:
+      - { rule: 'allow', port: '2210', proto: 'tcp' } # SSH
+      - { rule: 'allow', port: '80', proto: 'tcp' } # HTTP
+      - { rule: 'allow', port: '443', proto: 'tcp' } # HTTPS
+      - { rule: 'allow', port: '4242', proto: 'udp' } # Nebula VPN
+
+  - name: configure Nebula VPN scrape endpoints
+    ufw: rule={{ item.rule }} port={{ item.port }} proto={{ item.proto }} source={{ item.source }}
+    with_items:
+      - { rule: 'allow', port: '8080', proto: 'tcp', source: '44.44.44.0/24' } # CAdvisor
+      - { rule: 'allow', port: '9100', proto: 'tcp', source: '44.44.44.0/24' } # Node-Exporter
+    notify:
+      - restart ufw
+
+  # You should install Docker before this rule.
+  - name: configure ufw before.init to remove existing rules
+    blockinfile:
+      path: /etc/ufw/before.init
+      marker: "# {mark} ANSIBLE MANAGED BLOCK"
+      insertafter: stop\)
+      block: |
+        iptables -F DOCKER-USER || true
+        iptables -A DOCKER-USER -j RETURN || true
+        iptables -X ufw-user-input || true
+  
+  - name: chmod /etc/ufw/before.init
+    file:
+      path: /etc/ufw/before.init
+      state: touch
+      mode: "a+x"
+  
+  - name: configure ufw to work with DOCKER-USER chain name
+    blockinfile:
+      path: /etc/ufw/after.rules
+      marker: "# {mark} ANSIBLE MANAGED BLOCK (docker-user)"
+      block: |
+        *filter
+        :DOCKER-USER - [0:0]
+        :ufw-user-input - [0:0]
+        :ufw-after-logging-forward - [0:0]
+  
+        -A DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+        -A DOCKER-USER -m conntrack --ctstate INVALID -j DROP
+        -A DOCKER-USER -i {{ ansible_default_ipv4.interface }} -j ufw-user-input
+        -A DOCKER-USER -i {{ ansible_default_ipv4.interface }} -j ufw-after-logging-forward
+        -A DOCKER-USER -i {{ ansible_default_ipv4.interface }} -j DROP
+  
+        COMMIT
+    

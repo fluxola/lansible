@@ -1,0 +1,11 @@
+---
+- name: install docker-compose
+  get_url:
+    url: https://github.com/docker/compose/releases/download/{{ compose_version }}/docker-compose-Linux-x86_64
+    dest: /usr/local/bin
+    mode: 0755
+- name: install python3 docker-compose dependencies
+  pip:
+    name: docker-compose
+    executable: pip3
+    state: latest          

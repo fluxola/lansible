@@ -11,7 +11,7 @@ tasks:
     regexp: '^%wheel'
     line: '%wheel ALL=(ALL) NOPASSWD: ALL'
     validate: 'visudo -cf %s'
-- name: Add the user fluxola, add to wheel group
+- name: Add the user christopher, add to wheel group
   user:
     name: christopher
     group: wheel
@@ -21,7 +21,7 @@ tasks:
     user: christopher
     state: present
     key: https://github.com/fluxola.keys
-- name: Add the user fluxola, add to wheel group
+- name: Add the user control, add to wheel group
   user:
     name: control
     group: wheel

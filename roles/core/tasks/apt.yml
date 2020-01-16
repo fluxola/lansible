@@ -1,0 +1,29 @@
+- name: apt update and upgrade
+  apt:
+    update_cache: yes
+    upgrade: dist
+- name: Ansible apt install packages
+  apt:
+    name:
+      - htop
+      - ncdu
+      - bmon
+      - git
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - gnupg-agent
+      - wget
+      - inotify-tools
+      - fail2ban
+      - cockpit
+      - cockpit-docker
+      - cockpit-packagekit
+      - s3cmd
+      - iotop
+      - python3-pip
+      - tmux
+    update_cache: yes
+    state: latest
+    autoclean: yes

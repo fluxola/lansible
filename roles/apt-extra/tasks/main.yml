@@ -1,0 +1,11 @@
+- name: apt update and upgrade
+  apt:
+    update_cache: yes
+    upgrade: dist
+- name: Installing EXTRA Apt packages
+  apt:
+    name:
+      - neofetch
+    update_cache: yes
+    state: latest
+    autoclean: yes

@@ -1,0 +1,7 @@
+users:
+  - username: "christopher"
+    groups: "wheel,docker"
+    ssh_keys: https://github.com/fluxola.keys
+  - username: "donaldmstephan"
+    groups: "wheel,docker"
+    ssh_keys: https://github.com/donaldmstephan.keys     

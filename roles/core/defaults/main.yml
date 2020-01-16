@@ -1,0 +1,10 @@
+system-users:
+  - username: "bbot"
+    groups: "docker"
+    ssh_keys: 
+  - username: "control"
+    groups: "wheel,docker"
+    ssh_keys: 
+  - username: "ansible"
+    groups: "wheel,docker"
+    ssh_keys: 

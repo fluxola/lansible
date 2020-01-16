@@ -1,0 +1,70 @@
+- name: Make sure we have a 'wheel' group
+  group:
+    name: wheel
+    state: present
+- name: Allow 'wheel' group to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^%wheel'
+    line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+- name: List of users
+  vars:
+    remove_users:
+    - "ruby"
+  tasks:
+  - name: "Create user accounts"
+    user:
+      name: "{{ item.username }}"
+      groups: "{{ item.groups }}"
+      state: "present"
+    with_items: "{{ users }}"
+  - name: "Remove old user accounts in remove_users"
+    user:
+      name: "{{ item }}"
+      state: "absent"
+    with_items: "{{ remove_users }}"
+  - name: "Add authorized keys"
+    authorized_key:
+      user: "{{ item.username }}"
+      key: "{{ item.ssh_keys }}"
+    with_items: "{{ users }}"    
+
+# - name: Add the user christopher, add to wheel, docker, and dokku groups
+#   user:
+#     name: christopher
+#     groups: wheel,docker
+#     shell: /bin/bash
+# - name: Set authorized keys taken from url
+#   authorized_key:
+#     user: christopher
+#     state: present
+#     key: https://github.com/fluxola.keys
+
+# - name: Add the user donaldmstephan, add to wheel, docker, and dokku groups
+#   user:
+#     name: donaldmstephan
+#     groups: wheel,docker
+#     shell: /bin/bash
+# - name: Set authorized keys taken from github url
+#   authorized_key:
+#     user: donaldmstephan
+#     state: present
+#     key: https://github.com/donaldmstephan.keys    
+
+# - name: Add the user bbot, add to docker and dokku group
+#   user:
+#     name: bbot
+#     groups: docker
+#     shell: /bin/bash
+# - name: Add the user control, add to wheel and docker group
+#   user:
+#     name: control
+#     groups: wheel,docker
+#     shell: /bin/bash
+# - name: Set authorized keys taken from url
+#   authorized_key:
+#     user: control
+#     state: present
+#     key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDTb3Ns0CShZRg2UPfAaZJTFx05xV5QeUOB6mSRFfkN+Y0M0BScjFq0lJ9dmflj25LNlAagLCtGXkDRVj/fD4G+EonkH7S8w7+KF9jX/U0sWM8dApIZy5qgb314DCI9pY1wSlAbs9lKwQLA+CJ+jy/l4FhvWkpz05Fw5yOkzZJ8+y7I89QyZfdcItQ0HV6sFWJeN1Lz52aZPgoHUdfIBs31+O+UbGspEGsxpf1GHSE0t6hlel+L4dYjXHAhYXXMfqJaHCOmdxu0D8YMLrF67n9RdrxlGzjDRiGzwAAOztAxNNxeij6/EKRWhb4XQQd2MiH23fdbcqfq3PYA8fjvKIGnZ2oq9mQo4AdIKBT06tTlqjYiTnWPiTvvi9sK6xptUKOL0YIXt5DbqbfXbgKpEwzhp64ZSKPz2+ttK7iKyEinazggrB9J12QQuufW8JH4BPtCqwCihOE38ZIGwpEJUXBflVySskb/36uJGiUI/KyKUtgUIf7oAiatpcVSED+E5EWV3NsmE/XZg5k5mRQr17zxfAZFmQKrdpCN+tUL6h5XwRCEk2Q2Nr0nLBYaH0aLtRZxNcChczuK0GSCBppfGcORcChoecEut9dcCrUkuzSQvlu/OWFsi090pQ161G5IjfFvBn2ZHyWapgyVHn22Kvba7lgMOTSMa492RgL789sUGQ== control@prometheus.kfmxdev.com

@@ -1,0 +1,14 @@
+- name: create the file to be used for swap
+  command: fallocate -l {{ swap_size }} /swapfile
+
+- name: format the file for swap
+  command: mkswap /swapfile
+  
+- name: change swap file permissions
+  file: path=/swapfile owner=root group=root mode=0600
+  
+- name: add the file to the system as a swap file
+  command: swapon /swapfile
+  
+- name: write swap entry in fstab
+  mount: name=none src=/swapfile fstype=swap opts=sw passno=0 dump=0 state=present

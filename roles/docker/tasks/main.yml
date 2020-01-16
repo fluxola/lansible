@@ -1,0 +1,61 @@
+---
+- name: Updating and Upgrading Packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+- name: Installing Docker Dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
+      - python3-pip
+    update_cache: yes
+    state: latest
+    autoclean: yes
+- name: Remove old version of Docker (if any)
+  apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+    autoclean: yes      
+- name: Adding Docker repo GPG key to APT
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+- apt_repository:
+  repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+  state: present
+- name: install python3 docker dependencies
+  pip:
+    name: docker
+    executable: pip3
+    state: latest  
+- name: Installing Docker
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - auditd
+    update_cache: yes
+    state: latest
+- name: configuring auditd for docker
+  copy:
+    src: ../files/audit.rules
+    dest: /etc/audit/rules.d/
+    mode: 0640
+    owner: root
+    group: root
+- name: configure docker daemon
+  copy:
+    src: ../files/daemon.json
+    dest: /etc/docker/
+    owner: root
+    group: root
