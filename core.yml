@@ -3,6 +3,17 @@
     become: yes
     become_method: sudo
     connection: ssh
-    gather_facts: yes  
+    gather_facts: yes
+    vars:
+      compose_version: 1.25.0
+      users:
+        - username: "christopher"
+          groups: "wheel"
+          ssh_keys: https://github.com/fluxola.keys
+        - username: "ansible"
+          groups: "wheel"
+          ssh_keys: https://github.com/fluxola.keys               
     roles:
       - core
+      - docker
+      - docker-compose
