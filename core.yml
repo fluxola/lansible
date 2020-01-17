@@ -5,7 +5,7 @@
     connection: ssh
     gather_facts: yes
     vars:
-      compose_version: 1.25.0
+      compose_version: 1.25.1
       users:
         - username: "christopher"
           groups: "wheel"
@@ -17,3 +17,11 @@
       - core
       - docker
       - docker-compose
+  - hosts: uproot
+    become: yes
+    become_method: sudo
+    connection: ssh
+    gather_facts: yes
+    vars:       
+    roles:
+      - uproot

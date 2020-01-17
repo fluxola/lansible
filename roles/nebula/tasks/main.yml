@@ -1,0 +1,7 @@
+---
+-  name: install Nebula VPN
+   unarchive:
+    src: https://github.com/slackhq/nebula/releases/download/v{{ nebula_version }}/nebula-linux-amd64.tar.gz
+    dest: /usr/local/bin
+    remote_src: yes
+    mode: 0755
