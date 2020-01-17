@@ -1,0 +1,26 @@
+---
+  # tasks file for nextcloud
+  - name: Create a directory if it does not exist
+    remote_user: ansible
+    become: yes
+    file:
+      path: /home/ansible/uproot-nextcloud
+      state: directory
+  - name: Copy stack configuration files
+    become: yes
+    remote_user: ansible
+    copy:
+      src: "{{ item.src }}"
+      dest: /home/ansible/uproot-nextcloud/
+      mode: 0600
+      owner: ansible
+      group: ansible
+    with_items:
+      - { src: 'files/docker-compose.yml'} 
+  - name: Create and start services
+    become: yes
+    remote_user: ansible
+    docker_compose:
+      project_src: /home/ansible/uproot-nextcloud
+    register: output
+  

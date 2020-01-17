@@ -11,7 +11,7 @@
           groups: "wheel"
           ssh_keys: https://github.com/fluxola.keys
         - username: "ansible"
-          groups: "wheel"
+          groups: "wheel,docker"
           ssh_keys: https://github.com/fluxola.keys               
     roles:
       - core
@@ -26,3 +26,4 @@
     vars:       
     roles:
       - uproot
+      - nextcloud
