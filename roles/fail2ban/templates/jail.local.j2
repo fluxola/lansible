@@ -1,0 +1,19 @@
+# Default banning action (e.g. iptables, iptables-new,
+# iptables-multiport, shorewall, etc) It is used to define
+# action_* variables. Can be overridden globally or per
+# section within jail.local file
+
+[DEFAULT]
+
+banaction = ufw
+banaction_allports = ufw
+bantime = 3600
+findtime = 3600
+maxretry = 6
+
+[ssh]
+
+enabled  = true
+port     = {{ ansible_port }}
+filter   = sshd
+logpath  = /var/log/auth.log
