@@ -17,6 +17,7 @@
       - core
       - docker
       - docker-compose
+      - nebula
   - hosts: uproot
     become: yes
     become_method: sudo
