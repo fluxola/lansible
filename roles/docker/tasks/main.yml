@@ -59,3 +59,9 @@
     dest: /etc/docker/
     owner: root
     group: root
+- name: add users to docker group
+  user:
+    name: "{{ item.username }}"
+    groups: "wheel,docker"
+    state: "present"
+  with_items: "{{ users }}"      
