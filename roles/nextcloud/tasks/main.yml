@@ -4,30 +4,18 @@
     file:
       path: /home/ansible/uproot-nextcloud
       state: directory
-  - name: Create a directory if it does not exist
-    file:
-      path: /home/ansible/uproot-nextcloud/nginx
-      state: directory      
+  - name: create ddclient directoy
+    file: 
+      path: /home/ansible/uproot-nextcloud/ddclient
+      state: directory
   - name: Copy stack configuration files
     copy:
       src: files/docker-compose.yml
       dest: /home/ansible/uproot-nextcloud/
-      mode: 0600
-      owner: ansible
-      group: ansible
-  - name: configure nginx container
-    copy:  
-      src: files/nginx/nginx.conf
-      dest: /home/ansible/uproot-nextcloud/nginx/
-      owner: ansible
-      group: ansible
-  - name: insert environment vars
+  - name: configure ddclient
     template:
-      src: env.j2
-      dest: /home/ansible/uproot-nextcloud/.env
-      mode: 0600
-      owner: ansible
-      group: ansible
+      src: ddclient.conf.j2
+      dest: /home/ansible/uproot-nextcloud/ddclient/ddclient.conf
   - name: Create and start services
     docker_compose:
       project_src: /home/ansible/uproot-nextcloud

@@ -18,6 +18,7 @@
     user:
       name: "{{ item.username }}"
       groups: "{{ item.groups }}"
+      shell: "{{ item.shell }}"
       state: "present"
     with_items: "{{ users }}"
   - name: "Remove old user accounts in remove_users"

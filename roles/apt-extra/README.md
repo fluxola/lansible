@@ -29,7 +29,7 @@ Example Playbook
 License
 -------
 
-Property of Bema Technology LLC
+Property of  LLC
 
 Author Information
 ------------------
